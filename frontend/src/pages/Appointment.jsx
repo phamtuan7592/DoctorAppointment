@@ -1,14 +1,17 @@
 import React, { use, useContext, useEffect, useState } from 'react'
-import { data, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { AppContext } from '../context/AppContext';
 import { assets } from '../assets/assets';
 import RelatedDoctors from '../components/RelatedDoctors';
+import { toast } from 'react-toastify';
 
 const Appointment = () => {
 
   const {docId} = useParams()
-  const {doctors, currencySymbol} =useContext(AppContext)
+  const {doctors, currencySymbol,backendUrl, token, getDoctorsData} =useContext(AppContext)
   const dayOfWeek = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRE', 'SAT']
+
+  const navigate = useNavigate()
 
   const [docInfo, setDocInfo] = useState(null)
   const [docSlots, setDocSlots] = useState([])
@@ -61,6 +64,36 @@ const Appointment = () => {
       }
 
         setDocSlots(prev =>([...prev, timeSlots]))
+    }
+  }
+
+  const bookAppointment = async() => {
+    if(!token){
+      toast.warn('Login to book appointment')
+      return navigate('/login')
+    }
+
+    try{
+
+      const date = docSlots[slotIndex][0].datetime
+
+      let day = date.getDate()
+      let month = date.getMonth()+1
+      let Year = date.getFullYear()
+
+      const { data } = await axios.post(backendUrl + '/api/user/book-appoinment', {docId, slotDate, slotTime}, {headers:{token}})
+      if(date.success){
+        toast.success(data.message)
+        getDoctorsData()
+        navigate('/my-appointments')
+      }else{
+        toast.error(data.message)
+      }
+
+
+    }catch (error){
+      console.log(error)
+      toast.error(error.message)
     }
   }
 
@@ -129,7 +162,7 @@ const Appointment = () => {
             </p>
           ))}
         </div>
-          <button className='bg-primary text-white text-sm font-light px-14 py-3 rounded-full my-6'>Book an appointment</button>
+          <button onClick={bookAppointment} className='bg-primary text-white text-sm font-light px-14 py-3 rounded-full my-6'>Book an appointment</button>
       </div>
 
       {/* listing Related Doctors */}
