@@ -83,7 +83,7 @@ const getProfile = async (req, res) => {
 
     try {
 
-        const { userId } = req.body
+        const userId = req.userId
         const userData = await userModel.findById(userId).select('-password')
 
         res.json({ success: true, userData })
@@ -99,7 +99,8 @@ const getProfile = async (req, res) => {
 const updateProfile = async (req, res) => {
     try {
 
-        const { userId, name, phone, address, dob, gender } = req.body
+        const userId = req.userId
+        const { name, phone, address, dob, gender } = req.body
         const imageFile = req.file
 
         if (!name || !phone || !address || !dob || !gender) {
@@ -182,4 +183,4 @@ const bookAppointment = async (req,res) => {
     
 }
 
-export { registerUser, loginUser, getProfile, updateProfile }
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment }
