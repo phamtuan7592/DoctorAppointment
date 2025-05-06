@@ -140,7 +140,6 @@ const bookAppointment = async (req, res) => {
         return res.json({ success: false, message: 'Doctor not available' });
       }
   
-      // ✅ THÊM VÀO ĐÂY: kiểm tra nếu slot đã được đặt
       const alreadyBooked = await appointmentModel.findOne({
         docId,
         slotDate,
@@ -194,7 +193,7 @@ const bookAppointment = async (req, res) => {
     }
   };
 
-// userController.js
+//API listappoint
 export const listAppointment = async (req, res) => {
     try {
         const userId = req.userId;  // Lấy userId từ token đã xác thực
@@ -212,5 +211,46 @@ export const listAppointment = async (req, res) => {
 };
 
 
+//API cancel
+const cancelAppointment = async (req, res) => {
+    try {
+        const userId = req.userId;  // Sử dụng userId đã xác thực
+        const { appointmentId } = req.body;
 
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment }
+        const appointmentData = await appointmentModel.findById(appointmentId);
+
+        if (!appointmentData) {
+            return res.json({ success: false, message: 'Appointment not found' });
+        }
+
+        if (appointmentData.userId.toString() !== userId.toString()) {
+            return res.json({ success: false, message: 'Unauthorized action' });
+        }
+
+        // Cập nhật lịch hẹn thành "cancelled"
+        appointmentData.cancelled = true;
+        await appointmentData.save();
+
+        const { docId, slotTime, slotDate } = appointmentData;
+        const doctorData = await doctorModel.findById(docId);
+
+        if (!doctorData) {
+            return res.json({ success: false, message: 'Doctor not found' });
+        }
+
+        // Cập nhật lại slots_booked của bác sĩ
+        let slots_booked = doctorData.slots_booked;
+        if (slots_booked[slotDate]) {
+            slots_booked[slotDate] = slots_booked[slotDate].filter(e => e !== slotTime);
+            await doctorModel.findByIdAndUpdate(docId, { slots_booked });
+        }
+
+        res.json({ success: true, message: 'Appointment Cancelled' });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error.message });
+    }
+};
+
+
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment,cancelAppointment}
