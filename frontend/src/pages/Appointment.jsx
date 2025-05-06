@@ -75,6 +75,12 @@ const Appointment = () => {
       return navigate('/login')
     }
 
+    if (!slotTime) {
+      toast.warn('Please select a time slot');
+      return;
+    }
+
+
     try{
 
       const date = docSlots[slotIndex][0].datetime
@@ -83,8 +89,11 @@ const Appointment = () => {
       let month = date.getMonth()+1
       let Year = date.getFullYear()
 
-      const { data } = await axios.post(backendUrl + '/api/user/book-appoinment', {docId, slotDate, slotTime}, {headers:{token}})
-      if(date.success){
+      const slotDate = day + "_" + month + "_" + Year;
+
+
+      const { data } = await axios.post(backendUrl + '/api/user/book-appointment', {docId, slotDate, slotTime}, {headers:{token}})
+      if(data.success){
         toast.success(data.message)
         getDoctorsData()
         navigate('/my-appointments')
@@ -103,9 +112,12 @@ const Appointment = () => {
     fetchDocInfo()
   },[doctors,docId])
 
-  useEffect(()=>{
-    getAvailableSlots()
-  },[docInfo])
+  useEffect(() => {
+  if (docInfo) {
+    getAvailableSlots();
+  }
+}, [docInfo]);
+
 
   useEffect(()=>{
     console.log(docSlots);
