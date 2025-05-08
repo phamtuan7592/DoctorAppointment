@@ -9,6 +9,8 @@ const AdminContextProvider = (props) => {
     const [aToken, setAToken] = useState(localStorage.getItem('aToken') ? localStorage.getItem('aToken') : '');
     const [doctors, setDoctors] = useState([]);
     const [appointments, setAppointments] = useState([]);
+    const [dashData, setDashData] = useState(false)
+
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
     useEffect(() => {
@@ -92,6 +94,39 @@ const AdminContextProvider = (props) => {
         }
     };
 
+    const cancelAppointment = async(appointmentId)=>{
+        try{
+            const {data}= await axios.post(backendUrl + '/api/admin/cancel-appointment',{appointmentId},{headers:{aToken}})
+            if(data.success){
+                toast.success(data.message)
+                getAllAppointments()
+            }else{
+                toast.error(data.message)
+            }
+        }catch(error){
+            console.error(error);
+            toast.error("Có lỗi xảy ra khi lấy dữ liệu cuộc hẹn.");
+        }
+
+    }
+
+
+    const getDashData = async ()=>{
+        try{
+
+            const {data} = await axios.get(backendUrl + '/api/admin/dashboard',{headers:{aToken}})
+            if(data.success){
+                setDashData(data.dashData)
+                console.log(data.dashData)
+            }else {
+                toast.error(data.message)
+            }
+        }catch(error){
+            toast.error(error.message || "Có lỗi xảy ra khi lấy dữ liệu bảng điều khiển.")
+            }
+    }
+    
+
     const value = {
         aToken,
         setAToken,
@@ -101,7 +136,10 @@ const AdminContextProvider = (props) => {
         changeAvailability,
         appointments,
         setAppointments,
-        getAllAppointments
+        getAllAppointments,
+        cancelAppointment,
+        dashData, getDashData,
+
     };
 
     return (

@@ -1,10 +1,12 @@
 import React, { useContext, useEffect } from 'react';
 import { AdminContext } from '../../context/AdminContext';
 import { AppContext } from '../../context/AppContext';
-import assets from '../../assets'; // Đảm bảo bạn có `cancel_icon` trong assets
+//import assets from '../../assets'; // Đảm bảo bạn có `cancel_icon` trong assets
+import { assets } from '../../assets/assets.js';
+
 
 const AllAppointments = () => {
-  const { aToken, appointments, getAllAppointments } = useContext(AdminContext);
+  const { aToken, appointments, getAllAppointments, cancelAppointment } = useContext(AdminContext);
   const { calculateAge, slotDateFormat, currency } = useContext(AppContext);
 
   useEffect(() => {
@@ -51,8 +53,10 @@ const AllAppointments = () => {
               <div>
                 {item.cancelled ? (
                   <p className="text-red-500 text-xs font-semibold">Cancelled</p>
-                ) : (
+                ) : item.isCompleted
+                ?<p className='text-green-400 text-xs font-medium'>Completed</p> :(
                   <img
+                    onClick={()=>cancelAppointment(item._id)}
                     className="w-6 cursor-pointer"
                     src={assets.cancel_icon}
                     alt="Cancel icon"
