@@ -129,7 +129,7 @@ const updateProfile = async (req, res) => {
 }
 
 //api to book appontment
-const bookAppointment = async (req, res) => {
+{/*const bookAppointment = async (req, res) => {
     try {
       const { docId, slotDate, slotTime } = req.body;
       const userId = req.userId;
@@ -193,7 +193,75 @@ const bookAppointment = async (req, res) => {
       console.log(error);
       res.json({ success: false, message: error.message });
     }
-  };
+  };*/}
+  // API to book appointment
+const bookAppointment = async (req, res) => {
+    try {
+        const { docId, slotDate, slotTime } = req.body;
+        const userId = req.userId;
+
+        const docData = await doctorModel.findById(docId).select('-password');
+
+        if (!docData.available) {
+            return res.json({ success: false, message: 'Doctor not available' });
+        }
+
+        const alreadyBooked = await appointmentModel.findOne({
+            docId,
+            slotDate,
+            slotTime,
+            cancelled: false // Kiểm tra lịch chưa bị hủy
+        });
+
+        if (alreadyBooked) {
+            return res.json({ success: false, message: 'Slot not available' });
+        }
+
+        let slots_booked = docData.slots_booked;
+
+        if (slots_booked[slotDate]) {
+            if (slots_booked[slotDate].includes(slotTime)) {
+                return res.json({ success: false, message: 'Slot not available' });
+            } else {
+                slots_booked[slotDate].push(slotTime);
+            }
+        } else {
+            slots_booked[slotDate] = [];
+            slots_booked[slotDate].push(slotTime);
+        }
+
+        const userData = await userModel.findById(userId).select('-password');
+        if (!userData) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+
+        delete docData.slots_booked;
+
+        const appointmentData = {
+            userId,
+            docId,
+            userData,
+            docData,
+            amount: docData.fees,
+            slotTime,
+            slotDate,
+            date: Date.now(),
+            payment: false,
+            isCompleted: false
+        };
+
+        const newAppointment = new appointmentModel(appointmentData);
+        await newAppointment.save();
+
+        await doctorModel.findByIdAndUpdate(docId, { slots_booked });
+
+        res.json({ success: true, message: 'Appointment Booked' });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error.message });
+    }
+};
+
 
 //API listappoint
 export const listAppointment = async (req, res) => {
@@ -214,7 +282,7 @@ export const listAppointment = async (req, res) => {
 
 
 //API cancel
-const cancelAppointment = async (req, res) => {
+{/*const cancelAppointment = async (req, res) => {
     try {
         const userId = req.userId;  // Sử dụng userId đã xác thực
         const { appointmentId } = req.body;
@@ -252,7 +320,49 @@ const cancelAppointment = async (req, res) => {
         console.log(error);
         res.json({ success: false, message: error.message });
     }
+};*/}
+// API cancel
+const cancelAppointment = async (req, res) => {
+    try {
+        const userId = req.userId;  // Lấy userId từ token đã xác thực
+        const { appointmentId } = req.body;
+
+        const appointmentData = await appointmentModel.findById(appointmentId);
+
+        if (!appointmentData) {
+            return res.json({ success: false, message: 'Appointment not found' });
+        }
+
+        if (appointmentData.userId.toString() !== userId.toString()) {
+            return res.json({ success: false, message: 'Unauthorized action' });
+        }
+
+        // Cập nhật lịch hẹn thành "cancelled"
+        appointmentData.cancelled = true;
+        await appointmentData.save();
+
+        const { docId, slotTime, slotDate } = appointmentData;
+        const doctorData = await doctorModel.findById(docId);
+
+        if (!doctorData) {
+            return res.json({ success: false, message: 'Doctor not found' });
+        }
+
+        // Cập nhật lại slots_booked của bác sĩ
+        let slots_booked = doctorData.slots_booked;
+        if (slots_booked[slotDate]) {
+            // Thêm lại slot đã bị hủy
+            slots_booked[slotDate] = slots_booked[slotDate].filter(e => e !== slotTime);
+            await doctorModel.findByIdAndUpdate(docId, { slots_booked });
+        }
+
+        res.json({ success: true, message: 'Appointment Cancelled' });
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error.message });
+    }
 };
+
 
 
 export { registerUser, loginUser, getProfile, updateProfile, bookAppointment,cancelAppointment}

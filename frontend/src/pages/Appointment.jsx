@@ -68,6 +68,7 @@ const Appointment = () => {
         setDocSlots(prev =>([...prev, timeSlots]))
     }
   }
+  
 
   const bookAppointment = async() => {
     if(!token){
